@@ -16,23 +16,22 @@ WiFiMulti wifiMulti;
 void setup() {
   Serial.begin(115200);
   wifiMulti.addAP(SSID, WIFI_PASS);
-
-  int response = 0;
-  do { 
-
-    response = start_scan();
-  } while (response != ACK);
 }
 
 
 void loop() {
-  char* barcode = NULL;
+  int response = 0;
+  do { 
+    response = start_scan();
+  } while (response != ACK);
 
+  
+  char* barcode = NULL;
   if (Serial.available() > 0) {
     barcode = read_barcode();
     post_barcode(barcode);
   }
-  delay(5000);
+  delay(200);
 }
 
 
@@ -59,6 +58,7 @@ char* read_barcode() {
     i++;
   }
   buf[13] = '\0';
+  Serial.flush();
     
   return buf;
 }
