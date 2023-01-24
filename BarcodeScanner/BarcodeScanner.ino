@@ -31,7 +31,7 @@ void loop() {
     barcode = read_barcode();
     post_barcode(barcode);
   }
-  delay(200);
+  delay(5000);
 }
 
 
@@ -42,6 +42,8 @@ void post_barcode(char* barcode) {
     http.addHeader("Content-Type", "text/plain");
     
     int httpCode = http.POST(barcode);
+
+    
     String payload = http.getString();
 
     http.end();
