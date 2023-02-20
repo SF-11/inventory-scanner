@@ -10,10 +10,16 @@
 
 #define ACK 0x06
 #define NAK 0x15
+#define OK_PIN 2
+#define FAIL_PIN 4
 
 WiFiMulti wifiMulti;
 
+
 void setup() {
+  pinMode(OK_PIN, OUTPUT);
+  pinMode(FAIL_PIN, OUTPUT);
+  
   Serial.begin(115200);
   wifiMulti.addAP(SSID, WIFI_PASS);
 }
@@ -24,30 +30,30 @@ void loop() {
   do { 
     response = start_scan();
   } while (response != ACK);
-
   
   char* barcode = NULL;
   if (Serial.available() > 0) {
     barcode = read_barcode();
-    post_barcode(barcode);
+    int http_code = post_barcode(barcode);
+    set_output(http_code);
   }
-  delay(5000);
+  delay(2000);
+  digitalWrite(OK_PIN, LOW);
+  digitalWrite(FAIL_PIN, LOW);
 }
 
 
-void post_barcode(char* barcode) {
+int post_barcode(char* barcode) {
+  int http_code = 0;
+  
   if((wifiMulti.run() == WL_CONNECTED)) {
     HTTPClient http;
     http.begin("http://" SERVER_IP ":8080/barcode"); //HTTP
     http.addHeader("Content-Type", "text/plain");
-    
-    int httpCode = http.POST(barcode);
-
-    
-    String payload = http.getString();
-
+    http_code = http.POST(barcode);
     http.end();
   }
+  return http_code;
 }
 
 
@@ -59,7 +65,7 @@ char* read_barcode() {
     buf[i] = Serial.read();
     i++;
   }
-  buf[13] = '\0';
+  buf[i] = '\0';
   Serial.flush();
     
   return buf;
@@ -75,4 +81,22 @@ int start_scan() {
     response = Serial.read();
   }
   return response;
+}
+
+
+void set_output(int http_code) {
+  switch(http_code) {
+    case 200:
+      digitalWrite(OK_PIN, HIGH);
+      break;
+    case 429:
+      digitalWrite(FAIL_PIN, HIGH);
+      delay(200);
+      digitalWrite(FAIL_PIN, LOW);
+      delay(200);
+      digitalWrite(FAIL_PIN, HIGH);
+      break;
+    default:
+      digitalWrite(FAIL_PIN, HIGH);
+  }
 }
